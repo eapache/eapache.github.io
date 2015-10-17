@@ -1,0 +1,291 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="google-site-verification" content="pDic8oSh5wY_-M8lv51RXevGwuZ2L2yTfwPaxsjWXhI" />
+    <title>Evan Huus - E-Voting</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  </head>
+
+  <body>
+    <div id="header">
+      <nav>
+        <li class="fork"><a href="/">Back</a></li>
+      </nav>
+    </div>
+
+    <div class="wrapper">
+      <section>
+
+      <!-- HEADER -->
+      <div id="title">
+        <h1>E-Voting</h1>
+        <p>
+          A hypothetical e-voting crypto system. Obviously flawed, but the best
+          I've been able to come up with.
+        </p>
+        <hr>
+      </div>
+
+      <!-- PREFACE -->
+      <h2>
+        <a name="preface" class="anchor" href="#preface"></a>
+        Preface
+      </h2>
+
+      <p>
+      This is written from a cryptography/security perspective, so I assume
+      basic knowledge of public-key and symmetric crypto. If you have comments,
+      suggestions, or feedback, hit me up on
+      <a href="https://twitter.com/eapache">twitter</a> or
+      <a href="mailto:eapache@gmail.com">by email</a>.
+      </p>
+
+      <h3>
+        Goals
+      </h3>
+
+      <ul>
+        <li>As much information as possible is public to allow verification
+          by any interested third-party.</li>
+        <li>Consists of multiple independent systems to make it impossible for
+          a single well-placed individual to attack.</li>
+        <li>Votes are private.</li>
+        <li>Voters can verify their vote was recorded correctly.</li>
+      </ul>
+
+      <!-- DESCRIPTION -->
+      <h2>
+        <a name="description" class="anchor" href="#description"></a>
+        Description
+      </h2>
+
+      <p>
+      My hypothetical system consists of three completely independent components:
+      an authenticator, a key signer, and a vote recorder (all separate from the
+      voter's client system). For optimal security, each should be developed by
+      a separate group and kept completely isolated. All source should be
+      published, and each riding or district should have their own instances
+      with their own keys, to reduce the chance a single attacker could control
+      the entire election.
+      </p>
+
+      <h3>
+        Voter's Perspective
+      </h3>
+
+      <p>
+      In order to vote, the voter generates a public/private key pair and a
+      symmetric key. They encrypt their public key with the symmetric key, and
+      submit the resulting ciphertext to the authenticator, along with legal
+      proof of identity (e.g. a driver's license or passport). The authenticator
+      signs and publishes the ciphertext.
+      </p>
+
+      <p>
+      The voter then submits the signed ciphertext and their symmetric key to
+      the key-signer, which verifies the authenticator's signature, decrypts the
+      ciphertext to reveal a public key, then signs and publishes the voter's
+      public key.
+      </p>
+
+      <p>
+      Finally, the voter signs their vote with their private key, and publishes
+      it to the vote recorder. Anyone can verify that the vote was signed by a
+      private key whose corresponding public key was signed by the key-signer,
+      and that that private key was only used once.
+      </p>
+
+      <h3>
+        Authenticator
+      </h3>
+
+      <p>
+      This component is responsible for authenticating that a person is who they
+      say they are, and is eligible to vote. Initial data consists of the
+      electoral voter list (which is public) along with a public/private key
+      pair. Eligible voters may at any time submit proof of identity (whatever
+      that means in your country) as well as an opaque blob. On successful
+      authentication, the system permanently publishes the signed blob alongside
+      the voter's identity.
+      </p>
+
+      <p>
+      This system guarantees that it will only ever sign a single blob for each
+      eligible voter. Since the voter list and signed blobs are public, the
+      maximum number of possible legitimate votes is publicly verifiable.
+      </p>
+
+      <h3>
+        Key Signer
+      </h3>
+
+      <p>
+      This component is responsible for signing and publishing voters' public
+      keys. Its only initial state is a public/private key pair (different from
+      that used by the authenticator). At any time, an eligible voter may submit
+      a blob signed by the authenticator alongside their symmetric key. The
+      system verifies the authenticator's signature, decrypts the blob, then
+      signs and permanently publishes the resulting plaintext public key.
+      </p>
+
+      <p>
+      This system guarantees it will only sign public keys which are first
+      verified by the authenticator. By immediately discarding the symmetric key
+      after decrypting the blob, the window in which an identity may be linked
+      to a signed key is kept to a minimum. Anyone can verify that the number of
+      signed keys is less than or equal to the number of signatures published
+      by the authenticator.
+      </p>
+
+      <h3>
+        Vote Recorder
+      </h3>
+
+      <p>
+      This component is responsible for receiving and publishing votes. At any
+      time a voter may sign their vote with their private key and submit the
+      signed vote to the recorder. The recorder verifies that the corresponding
+      public key was signed by the key-signer, and records the vote alongside
+      the signed public key.
+      </p>
+
+      <p>
+      This system guarantees that each private key can only be used to sign a
+      single vote, and that users can see their vote recorded publically to
+      verify at any time.
+      </p>
+
+      <!-- ATTACKS -->
+      <h2>
+        <a name="attacks" class="anchor" href="#attacks"></a>
+        Possible Attacks
+      </h2>
+
+      <h3>
+        Common Problems
+      </h3>
+
+      <p>
+      Like any remote voting system, without physically private ballots it is
+      possible for individuals to be coerced in their voting. Without physical
+      presence it is also more difficult to accurately authenticate voters,
+      since forging a piece of identity (e.g. a driver's license) is a lot
+      simpler when the photo does not have to match your face. The security of
+      the system also depends heavily on the underlying crypto; if an attacker
+      can cheaply crack symmetric or asymmetric keys then all bets are off.
+      </p>
+
+      <h3>
+        Casting Additional Votes
+      </h3>
+
+      <p>
+      An attacker with access to the private key of either the authenticator or
+      the key-signer could cast additional unauthorized votes. However, the
+      number of votes they could cast without detection would be limited in
+      several ways:
+      </p>
+
+      <ul>
+        <li>
+          If the key-signer publishes more signatures than the authenticator,
+          this is easily detectable by any third-party, and invalidates the
+          election. Therefore every additional vote cast would require an
+          identity on the electoral role.
+        </li>
+        <li>
+          Any voter who submits to the authenticator but not the key-signer
+          would leave their identity open for the above attack, but I expect that
+          number to be extremely low since most voters would use software to
+          accomplish both steps in quick succession.
+        </li>
+        <li>
+          Eligible voters who do not even submit to the authenticator could have
+          their identities co-opted for this purpose, but if any significant
+          number of identities were stolen, such people would be able to complain.
+          Ameliorating tactics might be to permit "null" or "protest" votes to
+          be registered through the normal process (thus consuming an identity),
+          and to send a "thank you for voting" notification to each consumed
+          identity, alerting non-voters that their identity had been co-opted.
+        </li>
+        <li>
+          With full access to the authenticator, an attacker could simply create
+          additional identities on the electoral role, but this would be
+          difficult to do at any sort of scale without detection since the list
+          is publicly auditable.
+        </li>
+      </ul>
+
+      <h3>
+        Changing or Revoking Votes
+      </h3>
+
+      <p>
+      This attack is effectively impossible without detection. Since every
+      signature by the authenticator is published, every signature by the
+      key-signer is published, and every vote received by the recorder is
+      published, there is no room for a changed or revoked vote to exist without
+      trivial detection by the voter or a third party.
+      </p>
+
+      <h3>
+        Miscounting Votes
+      </h3>
+
+      <p>
+      This attack is effectively impossible; every signed vote is individually
+      published, so any person would be able to trivially check the counts.
+      I expect each major new organization would run their own counter simply in
+      order to publish the most up-to-the-minute results.
+      </p>
+
+      <h3>
+        Identifying Voters
+      </h3>
+
+      <p>
+      An attacker with full access to the key-signer would be able to identify
+      voters at will, since they would be able to record the mapping from signed
+      ciphertext to public key which protects that information.
+      </p>
+
+      <p>
+      There is also the possibility of a timing attack here, by correlating
+      published blobs from the authenticator with published keys from the
+      key-signer. This can be reduced by adding a random back-off in the client
+      between the two steps.
+      </p>
+
+      <p>
+      Finally, simple IP-based identification can be avoided as long as the
+      client uses three distinct TOR routes, one to talk to each of the three
+      components.
+      </p>
+
+      <!-- FOOTER -->
+      <div id="title">
+        <hr>
+        <span class="credits left">Hosted on GitHub Pages</span>
+        <span class="credits right">Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></span>
+      </div>
+
+      </section>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+
+  </body>
+</html>
+
+<!-- vim: set et sts=2 sw=2 tw=0: -->
